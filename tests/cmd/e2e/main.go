@@ -15,6 +15,7 @@ package main
 
 import (
 	"context"
+	"flag"
 	"fmt"
 	"net/http"
 	_ "net/http/pprof"
@@ -32,6 +33,11 @@ import (
 var cfg *tests.Config
 var certCtx *apimachinery.CertContext
 var upgradeVersions []string
+var parallel bool
+
+func init() {
+	flag.BoolVar(&parallel, "parallel", false, "Run e2e test in parallel")
+}
 
 func main() {
 	logs.InitLogs()
@@ -72,7 +78,10 @@ func main() {
 	oa.DeployOperatorOrDie(ocfg)
 
 	fn1 := func(wg *sync.WaitGroup) {
-		defer wg.Done()
+		if wg != nil {
+			defer wg.Done()
+		}
+
 		oa.CleanTidbClusterOrDie(cluster1)
 		oa.DeployTidbClusterOrDie(cluster1)
 		oa.CheckTidbClusterStatusOrDie(cluster1)
@@ -123,7 +132,9 @@ func main() {
 		oa.CheckTidbClusterStatusOrDie(cluster1)
 	}
 	fn2 := func(wg *sync.WaitGroup) {
-		defer wg.Done()
+		if wg != nil {
+			defer wg.Done()
+		}
 
 		// deploy
 		oa.CleanTidbClusterOrDie(cluster2)
@@ -150,7 +161,10 @@ func main() {
 		oa.CleanWebHookAndServiceOrDie(ocfg)
 	}
 	fn3 := func(wg *sync.WaitGroup) {
-		defer wg.Done()
+		if wg != nil {
+			defer wg.Done()
+		}
+
 		oa.CleanTidbClusterOrDie(cluster3)
 		oa.CleanTidbClusterOrDie(cluster4)
 		oa.DeployTidbClusterOrDie(cluster3)
@@ -163,12 +177,19 @@ func main() {
 		oa.BackupRestoreOrDie(cluster3, cluster4)
 	}
 
-	var wg sync.WaitGroup
-	wg.Add(3)
-	go fn1(&wg)
-	go fn2(&wg)
-	go fn3(&wg)
-	wg.Wait()
+	if parallel {
+		glog.Info("Running e2e in parallel")
+		var wg sync.WaitGroup
+		wg.Add(3)
+		go fn1(&wg)
+		go fn2(&wg)
+		go fn3(&wg)
+		wg.Wait()
+	} else {
+		fn1(nil)
+		fn2(nil)
+		fn3(nil)
+	}
 
 	// check data regions disaster tolerance
 	for _, clusterInfo := range allClusters {
