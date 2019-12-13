@@ -19,6 +19,8 @@ import (
 	"io/ioutil"
 	"net/http"
 
+	"github.com/pingcap/tidb-operator/pkg/webhook/pod"
+
 	"github.com/golang/glog"
 	"github.com/pingcap/tidb-operator/pkg/webhook/statefulset"
 	"github.com/pingcap/tidb-operator/pkg/webhook/util"
@@ -94,4 +96,8 @@ func serve(w http.ResponseWriter, r *http.Request, admit admitFunc) {
 
 func ServeStatefulSets(w http.ResponseWriter, r *http.Request) {
 	serve(w, r, statefulset.AdmitStatefulSets)
+}
+
+func ServePods(w http.ResponseWriter, r *http.Request) {
+	serve(w, r, pod.AdmitPods)
 }

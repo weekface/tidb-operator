@@ -107,3 +107,24 @@ webhooks:
         apiGroups: [ "apps", "" ]
         apiVersions: ["v1beta1", "v1"]
         resources: ["statefulsets"]
+---
+apiVersion: admissionregistration.k8s.io/v1beta1
+kind: MutatingWebhookConfiguration
+metadata:
+  name: validation-admission-contorller-cfg
+  labels:
+    app: admission-controller
+webhooks:
+  - name: pod-admission-controller.pingcap.net
+    failurePolicy: Fail
+    clientConfig:
+      service:
+        name: admission-controller-svc
+        namespace: ${NAMESPACE}
+        path: "/pods"
+      caBundle: ${CA_BUNDLE}
+    rules:
+      - operations: ["CREATE"]
+        apiGroups: ["*"]
+        apiVersions: ["v1"]
+        resources: ["pods"]

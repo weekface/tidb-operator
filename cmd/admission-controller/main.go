@@ -22,6 +22,7 @@ import (
 	"github.com/golang/glog"
 	"github.com/pingcap/tidb-operator/pkg/client/clientset/versioned"
 	"github.com/pingcap/tidb-operator/pkg/webhook"
+	"github.com/pingcap/tidb-operator/pkg/webhook/pod"
 	"github.com/pingcap/tidb-operator/version"
 	"k8s.io/apiserver/pkg/util/logs"
 	"k8s.io/client-go/kubernetes"
@@ -39,6 +40,7 @@ func init() {
 	flag.BoolVar(&printVersion, "version", false, "Show version and quit")
 	flag.StringVar(&certFile, "tlsCertFile", "/etc/webhook/certs/cert.pem", "File containing the x509 Certificate for HTTPS.")
 	flag.StringVar(&keyFile, "tlsKeyFile", "/etc/webhook/certs/key.pem", "File containing the x509 private key to --tlsCertFile.")
+	flag.StringVar(&pod.ExtraVolumeHostPath, "extra-volume-hostpath", "/data2", "Extra volume host path")
 	flag.Parse()
 }
 
