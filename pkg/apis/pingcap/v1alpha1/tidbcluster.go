@@ -91,6 +91,20 @@ func (tc *TidbCluster) TiFlashImage() string {
 	return image
 }
 
+func (tc *TidbCluster) TiCdcImage() string {
+	image := tc.Spec.TiCdc.Image
+	baseImage := tc.Spec.TiCdc.BaseImage
+	// base image takes higher priority
+	if baseImage != "" {
+		version := tc.Spec.TiCdc.Version
+		if version == nil {
+			version = &tc.Spec.Version
+		}
+		image = fmt.Sprintf("%s:%s", baseImage, *version)
+	}
+	return image
+}
+
 func (tc *TidbCluster) TiFlashContainerPrivilege() *bool {
 	if tc.Spec.TiFlash.Privileged == nil {
 		pri := false
@@ -320,6 +334,10 @@ func (tc *TidbCluster) TiFlashAllStoresReady() bool {
 
 func (tc *TidbCluster) TiFlashStsDesiredReplicas() int32 {
 	return tc.Spec.TiFlash.Replicas + int32(len(tc.Status.TiFlash.FailureStores))
+}
+
+func (tc *TidbCluster) TiCdcDeployDesiredReplicas() int32 {
+	return tc.Spec.TiCdc.Replicas
 }
 
 func (tc *TidbCluster) TiFlashStsActualReplicas() int32 {

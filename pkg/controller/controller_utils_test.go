@@ -410,6 +410,16 @@ func newStatefulSet(tc *v1alpha1.TidbCluster, _ string) *apps.StatefulSet {
 	return set
 }
 
+func newDeployment(tc *v1alpha1.TidbCluster, _ string) *apps.Deployment {
+	deploy := &apps.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      GetName(tc.Name, "pd"),
+			Namespace: metav1.NamespaceDefault,
+		},
+	}
+	return deploy
+}
+
 // GetName concatenate tidb cluster name and member name, used for controller managed resource name
 func GetName(tcName string, name string) string {
 	return fmt.Sprintf("%s-%s", tcName, name)

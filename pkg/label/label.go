@@ -132,8 +132,10 @@ const (
 	TiDBLabelVal string = "tidb"
 	// TiKVLabelVal is TiKV label value
 	TiKVLabelVal string = "tikv"
-	// TiFlashLabelVal is TiKV label value
+	// TiFlashLabelVal is TiFlash label value
 	TiFlashLabelVal string = "tiflash"
+	// TiCdcLabelVal is TiCdc label value
+	TiCdcLabelVal string = "ticdc"
 	// PumpLabelVal is Pump label value
 	PumpLabelVal string = "pump"
 	// DiscoveryLabelVal is Discovery label value
@@ -314,6 +316,12 @@ func (l Label) TiKV() Label {
 // TiFlash assigns tiflash to component key in label
 func (l Label) TiFlash() Label {
 	l.Component(TiFlashLabelVal)
+	return l
+}
+
+// TiCdc assigns ticdc to component key in label
+func (l Label) TiCdc() Label {
+	l.Component(TiCdcLabelVal)
 	return l
 }
 

@@ -45,6 +45,8 @@ const (
 	TiKVMemberType MemberType = "tikv"
 	// TiFlashMemberType is tiflash container type
 	TiFlashMemberType MemberType = "tiflash"
+	// TiCdcMemberType is ticdc container type
+	TiCdcMemberType MemberType = "ticdc"
 	// SlowLogTailerMemberType is tidb log tailer container type
 	SlowLogTailerMemberType MemberType = "slowlog"
 	// UnknownMemberType is unknown container type

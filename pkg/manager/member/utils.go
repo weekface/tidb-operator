@@ -18,6 +18,7 @@ import (
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/BurntSushi/toml"
 	"github.com/pingcap/advanced-statefulset/pkg/apis/apps/v1/helper"
@@ -39,6 +40,8 @@ const (
 	ImagePullBackOff = "ImagePullBackOff"
 	// ErrImagePull is the pod state of image pull failed
 	ErrImagePull = "ErrImagePull"
+	// https://github.com/kubernetes/kubernetes/blob/dde6e8e7465468c32642659cb708a5cc922add64/pkg/controller/deployment/util/deployment_util.go#L47-L58
+	deploymentAnnoPrefix = "deployment.kubernetes.io"
 )
 
 func annotationsMountVolume() (corev1.VolumeMount, corev1.Volume) {
@@ -80,6 +83,20 @@ func SetStatefulSetLastAppliedConfigAnnotation(set *apps.StatefulSet) error {
 		set.Annotations = map[string]string{}
 	}
 	set.Annotations[LastAppliedConfigAnnotation] = setApply
+	return nil
+}
+
+// SetDeploymentLastAppliedConfigAnnotation set last applied config to Deployment's annotation
+func SetDeploymentLastAppliedConfigAnnotation(deploy *apps.Deployment) error {
+	deployApply, err := util.Encode(deploy.Spec)
+	if err != nil {
+		return err
+	}
+	if deploy.Annotations == nil {
+		deploy.Annotations = map[string]string{}
+	}
+	deploy.Annotations[LastAppliedConfigAnnotation] = deployApply
+
 	return nil
 }
 
@@ -125,6 +142,33 @@ func statefulSetEqual(new apps.StatefulSet, old apps.StatefulSet) bool {
 			apiequality.Semantic.DeepEqual(*tmpTemplate, new.Spec.Template) &&
 			apiequality.Semantic.DeepEqual(oldConfig.UpdateStrategy, new.Spec.UpdateStrategy)
 	}
+	return false
+}
+
+// deploymentEqual compares the new Deployment's spec with old Deployment's last applied config
+func deploymentEqual(new apps.Deployment, old apps.Deployment) bool {
+	// The annotations in old deployment may include LastAppliedConfigAnnotation
+	tmpAnno := map[string]string{}
+	for k, v := range old.Annotations {
+		if k != LastAppliedConfigAnnotation && !strings.Contains(k, deploymentAnnoPrefix) {
+			tmpAnno[k] = v
+		}
+	}
+	if !apiequality.Semantic.DeepEqual(new.Annotations, tmpAnno) {
+		return false
+	}
+
+	oldDeploySpec := apps.DeploymentSpec{}
+	if lastAppliedConfig, ok := old.Annotations[LastAppliedConfigAnnotation]; ok {
+		err := json.Unmarshal([]byte(lastAppliedConfig), &oldDeploySpec)
+		if err != nil {
+			klog.Errorf("unmarshal Deployment: [%s/%s]'s applied config failed,error: %v", old.GetNamespace(), old.GetName(), err)
+			return false
+		}
+
+		return apiequality.Semantic.DeepEqual(oldDeploySpec, new.Spec)
+	}
+
 	return false
 }
 
@@ -313,6 +357,41 @@ func updateStatefulSet(setCtl controller.StatefulSetControlInterface, tc *v1alph
 			return err
 		}
 		_, err = setCtl.UpdateStatefulSet(tc, &set)
+		return err
+	}
+
+	return nil
+}
+
+// updateDeployment is a template function to update the deployments of components
+func updateDeployment(deployCtl controller.DeploymentControlInterface, tc *v1alpha1.TidbCluster, newDeploy, oldDeploy *apps.Deployment) error {
+	isOrphan := metav1.GetControllerOf(oldDeploy) == nil
+
+	if oldDeploy.Annotations == nil {
+		oldDeploy.Annotations = map[string]string{}
+	}
+	if newDeploy.Annotations == nil {
+		newDeploy.Annotations = map[string]string{}
+	}
+
+	if !deploymentEqual(*newDeploy, *oldDeploy) || isOrphan {
+		deploy := *oldDeploy
+		deploy.Spec = newDeploy.Spec
+		deploy.Annotations = newDeploy.Annotations
+		for k, v := range newDeploy.Annotations {
+			if !strings.Contains(k, deploymentAnnoPrefix) {
+				deploy.Annotations[k] = v
+			}
+		}
+		if isOrphan {
+			deploy.OwnerReferences = newDeploy.OwnerReferences
+			deploy.Labels = newDeploy.Labels
+		}
+		err := SetDeploymentLastAppliedConfigAnnotation(&deploy)
+		if err != nil {
+			return err
+		}
+		_, err = deployCtl.UpdateDeployment(tc, &deploy)
 		return err
 	}
 
