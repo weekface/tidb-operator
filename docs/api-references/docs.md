@@ -174,6 +174,19 @@ BRConfig
 </tr>
 <tr>
 <td>
+<code>mydumper</code></br>
+<em>
+<a href="#mydumperconfig">
+MydumperConfig
+</a>
+</em>
+</td>
+<td>
+<p>MydumperConfig is the configs for mydumper</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>tolerations</code></br>
 <em>
 <a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.13/#toleration-v1-core">
@@ -724,13 +737,13 @@ TiFlashSpec
 <code>ticdc</code></br>
 <em>
 <a href="#ticdcspec">
-TiCdcSpec
+TiCDCSpec
 </a>
 </em>
 </td>
 <td>
 <em>(Optional)</em>
-<p>TiCdc cluster spec</p>
+<p>TiCDC cluster spec</p>
 </td>
 </tr>
 <tr>
@@ -1300,6 +1313,19 @@ string
 <p>Time zone of TiDB initializer Pods</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>tlsClientSecretName</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>TLSClientSecretName is the name of secret which stores tidb server client certificate
+Optional: Defaults to nil</p>
+</td>
+</tr>
 </table>
 </td>
 </tr>
@@ -1434,6 +1460,19 @@ InitializerSpec
 </em>
 </td>
 <td>
+</td>
+</tr>
+<tr>
+<td>
+<code>pvReclaimPolicy</code></br>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.13/#persistentvolumereclaimpolicy-v1-core">
+Kubernetes core/v1.PersistentVolumeReclaimPolicy
+</a>
+</em>
+</td>
+<td>
+<p>Persistent volume reclaim policy applied to the PVs that consumed by TiDB cluster</p>
 </td>
 </tr>
 <tr>
@@ -2059,6 +2098,19 @@ BRConfig
 </tr>
 <tr>
 <td>
+<code>mydumper</code></br>
+<em>
+<a href="#mydumperconfig">
+MydumperConfig
+</a>
+</em>
+</td>
+<td>
+<p>MydumperConfig is the configs for mydumper</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>tolerations</code></br>
 <em>
 <a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.13/#toleration-v1-core">
@@ -2343,6 +2395,21 @@ the auto-scaling would be performed.
 If not set, the default value is 5.</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>externalEndpoint</code></br>
+<em>
+<a href="#externalendpoint">
+ExternalEndpoint
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>ExternalEndpoint makes the auto-scaler controller able to query the external service
+to fetch the recommended replicas for TiKV/TiDB</p>
+</td>
+</tr>
 </tbody>
 </table>
 <h3 id="basicautoscalerstatus">BasicAutoScalerStatus</h3>
@@ -2571,7 +2638,7 @@ and component-level overrides</p>
 (<em>Appears on:</em>
 <a href="#pdspec">PDSpec</a>, 
 <a href="#pumpspec">PumpSpec</a>, 
-<a href="#ticdcspec">TiCdcSpec</a>, 
+<a href="#ticdcspec">TiCDCSpec</a>, 
 <a href="#tidbspec">TiDBSpec</a>, 
 <a href="#tiflashspec">TiFlashSpec</a>, 
 <a href="#tikvspec">TiKVSpec</a>)
@@ -3123,6 +3190,62 @@ bool
 </tr>
 </tbody>
 </table>
+<h3 id="externalendpoint">ExternalEndpoint</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#basicautoscalerspec">BasicAutoScalerSpec</a>)
+</p>
+<p>
+<p>ExternalEndpoint describes the external service endpoint
+which provides the ability to get the tikv/tidb auto-scaling recommended replicas</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>host</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Host indicates the external service&rsquo;s host</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>port</code></br>
+<em>
+int32
+</em>
+</td>
+<td>
+<p>Port indicates the external service&rsquo;s port</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>tlsSecret</code></br>
+<em>
+<a href="#secretref">
+SecretRef
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>TLSSecret indicates the Secret which stores the TLS configuration. If set, the operator will use https
+to communicate to the external service</p>
+</td>
+</tr>
+</tbody>
+</table>
 <h3 id="filelogconfig">FileLogConfig</h3>
 <p>
 (<em>Appears on:</em>
@@ -3401,7 +3524,18 @@ string
 </td>
 <td>
 <p>SecretName is the name of secret which stores the
-gcs service account credentials JSON .</p>
+gcs service account credentials JSON.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>prefix</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Prefix of the data path.</p>
 </td>
 </tr>
 </tbody>
@@ -4224,6 +4358,46 @@ Kubernetes core/v1.PullPolicy
 </td>
 <td>
 <em>(Optional)</em>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="mydumperconfig">MydumperConfig</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#backupspec">BackupSpec</a>)
+</p>
+<p>
+<p>MydumperConfig contains config for mydumper</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>options</code></br>
+<em>
+[]string
+</em>
+</td>
+<td>
+<p>Options means options for backup data to remote storage with mydumper.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>tableRegex</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>TableRegex means Regular expression for &lsquo;db.table&rsquo; matching</p>
 </td>
 </tr>
 </tbody>
@@ -5960,6 +6134,19 @@ PDConfig
 <p>Config is the Configuration of pd-servers</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>tlsClientSecretName</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>TLSClientSecretName is the name of secret which stores tidb server client certificate
+which used by Dashboard.</p>
+</td>
+</tr>
 </tbody>
 </table>
 <h3 id="pdstatus">PDStatus</h3>
@@ -7290,7 +7477,7 @@ string
 </em>
 </td>
 <td>
-<p>Prefix for the keys.</p>
+<p>Prefix of the data path.</p>
 </td>
 </tr>
 <tr>
@@ -7325,6 +7512,44 @@ string
 <p>
 <p>S3StorageProviderType represents the specific storage provider that implements the S3 interface</p>
 </p>
+<h3 id="secretref">SecretRef</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#externalendpoint">ExternalEndpoint</a>)
+</p>
+<p>
+<p>SecretRef indicates to secret ref</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>name</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>namespace</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+</td>
+</tr>
+</tbody>
+</table>
 <h3 id="security">Security</h3>
 <p>
 (<em>Appears on:</em>
@@ -7846,13 +8071,13 @@ Same for other components.</p>
 </tr>
 </tbody>
 </table>
-<h3 id="ticdcspec">TiCdcSpec</h3>
+<h3 id="ticdcspec">TiCDCSpec</h3>
 <p>
 (<em>Appears on:</em>
 <a href="#tidbclusterspec">TidbClusterSpec</a>)
 </p>
 <p>
-<p>TiCdcpec contains details of TiCdc members</p>
+<p>TiCDCSpec contains details of TiCDC members</p>
 </p>
 <table>
 <thead>
@@ -7900,7 +8125,7 @@ string
 </em>
 </td>
 <td>
-<p>Specify a Service Account for TiCdc</p>
+<p>Specify a Service Account for TiCDC</p>
 </td>
 </tr>
 <tr>
@@ -7991,16 +8216,14 @@ string
 </tr>
 <tr>
 <td>
-<code>tlsClient</code></br>
+<code>tlsClientSecretName</code></br>
 <em>
-<a href="#tidbtlsclient">
-TiDBTLSClient
-</a>
+string
 </em>
 </td>
 <td>
 <em>(Optional)</em>
-<p>Whether enable the TLS connection between the SQL client and TiDB server
+<p>TLSClientSecretName is the name of secret which stores tidb server client certificate
 Optional: Defaults to nil</p>
 </td>
 </tr>
@@ -9004,7 +9227,6 @@ string
 <h3 id="tidbtlsclient">TiDBTLSClient</h3>
 <p>
 (<em>Appears on:</em>
-<a href="#tidbaccessconfig">TiDBAccessConfig</a>, 
 <a href="#tidbspec">TiDBSpec</a>)
 </p>
 <p>
@@ -9041,21 +9263,6 @@ kubectl create secret generic <clusterName>-tidb-server-secret &ndash;namespace=
 The name of this Secret must be: <clusterName>-tidb-client-secret.
 kubectl create secret generic <clusterName>-tidb-client-secret &ndash;namespace=<namespace> &ndash;from-file=tls.crt=<path/to/tls.crt> &ndash;from-file=tls.key=<path/to/tls.key> &ndash;from-file=ca.crt=<path/to/ca.crt>
 4. Set Enabled to <code>true</code>.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>tlsSecret</code></br>
-<em>
-string
-</em>
-</td>
-<td>
-<em>(Optional)</em>
-<p>Specify a secret of client cert for backup/restore
-Optional: Defaults to <cluster>-tidb-client-secret
-If you want to specify a secret for backup/restore, generate a Secret Object according to the third step of the above procedure, The difference is the Secret Name can be freely defined, and then copy the Secret Name to TLSSecret
-this field only work in backup/restore process</p>
 </td>
 </tr>
 </tbody>
@@ -13518,6 +13725,109 @@ TidbAutoScalerStatus
 </tr>
 </tbody>
 </table>
+<h3 id="tidbclustercondition">TidbClusterCondition</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#tidbclusterstatus">TidbClusterStatus</a>)
+</p>
+<p>
+<p>TidbClusterCondition describes the state of a tidb cluster at a certain point.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>type</code></br>
+<em>
+<a href="#tidbclusterconditiontype">
+TidbClusterConditionType
+</a>
+</em>
+</td>
+<td>
+<p>Type of the condition.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>status</code></br>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.13/#conditionstatus-v1-core">
+Kubernetes core/v1.ConditionStatus
+</a>
+</em>
+</td>
+<td>
+<p>Status of the condition, one of True, False, Unknown.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>lastUpdateTime</code></br>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.13/#time-v1-meta">
+Kubernetes meta/v1.Time
+</a>
+</em>
+</td>
+<td>
+<p>The last time this condition was updated.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>lastTransitionTime</code></br>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.13/#time-v1-meta">
+Kubernetes meta/v1.Time
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Last time the condition transitioned from one status to another.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>reason</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>The reason for the condition&rsquo;s last transition.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>message</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>A human readable message indicating details about the transition.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="tidbclusterconditiontype">TidbClusterConditionType</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#tidbclustercondition">TidbClusterCondition</a>)
+</p>
+<p>
+<p>TidbClusterConditionType represents a tidb cluster condition value.</p>
+</p>
 <h3 id="tidbclusterref">TidbClusterRef</h3>
 <p>
 (<em>Appears on:</em>
@@ -13636,13 +13946,13 @@ TiFlashSpec
 <code>ticdc</code></br>
 <em>
 <a href="#ticdcspec">
-TiCdcSpec
+TiCDCSpec
 </a>
 </em>
 </td>
 <td>
 <em>(Optional)</em>
-<p>TiCdc cluster spec</p>
+<p>TiCDC cluster spec</p>
 </td>
 </tr>
 <tr>
@@ -13974,6 +14284,20 @@ TiFlashStatus
 <td>
 </td>
 </tr>
+<tr>
+<td>
+<code>conditions</code></br>
+<em>
+<a href="#tidbclustercondition">
+[]TidbClusterCondition
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Represents the latest available observations of a tidb cluster&rsquo;s state.</p>
+</td>
+</tr>
 </tbody>
 </table>
 <h3 id="tidbinitializerspec">TidbInitializerSpec</h3>
@@ -14097,6 +14421,19 @@ string
 <td>
 <em>(Optional)</em>
 <p>Time zone of TiDB initializer Pods</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>tlsClientSecretName</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>TLSClientSecretName is the name of secret which stores tidb server client certificate
+Optional: Defaults to nil</p>
 </td>
 </tr>
 </tbody>
@@ -14263,6 +14600,19 @@ InitializerSpec
 </em>
 </td>
 <td>
+</td>
+</tr>
+<tr>
+<td>
+<code>pvReclaimPolicy</code></br>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.13/#persistentvolumereclaimpolicy-v1-core">
+Kubernetes core/v1.PersistentVolumeReclaimPolicy
+</a>
+</em>
+</td>
+<td>
+<p>Persistent volume reclaim policy applied to the PVs that consumed by TiDB cluster</p>
 </td>
 </tr>
 <tr>

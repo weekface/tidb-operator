@@ -6,6 +6,9 @@ metadata:
   name: tidbclusters.pingcap.com
 spec:
   additionalPrinterColumns:
+  - JSONPath: .status.conditions[?(@.type=="Ready")].status
+    name: Ready
+    type: string
   - JSONPath: .status.pd.image
     description: The image for PD cluster
     name: PD
@@ -50,6 +53,10 @@ spec:
     description: The desired replicas number of TiDB cluster
     name: Desire
     type: integer
+  - JSONPath: .status.conditions[?(@.type=="Ready")].message
+    name: Status
+    priority: 1
+    type: string
   - JSONPath: .metadata.creationTimestamp
     name: Age
     type: date
@@ -932,6 +939,8 @@ spec:
                       type: string
                   type: object
                 storageClassName:
+                  type: string
+                tlsClientSecretName:
                   type: string
                 tolerations:
                   items:
@@ -4912,7 +4921,8 @@ spec:
                   type: integer
                 secretName:
                   type: string
-                tlsClient: {}
+                tlsClientSecretName:
+                  type: string
                 user:
                   type: string
               required:
@@ -4931,6 +4941,8 @@ spec:
                   type: string
                 path:
                   type: string
+                prefix:
+                  type: string
                 projectId:
                   type: string
                 secretName:
@@ -4940,6 +4952,15 @@ spec:
               required:
               - projectId
               - secretName
+              type: object
+            mydumper:
+              properties:
+                options:
+                  items:
+                    type: string
+                  type: array
+                tableRegex:
+                  type: string
               type: object
             s3:
               properties:
@@ -5333,6 +5354,8 @@ spec:
                   type: string
                 path:
                   type: string
+                prefix:
+                  type: string
                 projectId:
                   type: string
                 secretName:
@@ -5389,7 +5412,8 @@ spec:
                   type: integer
                 secretName:
                   type: string
-                tlsClient: {}
+                tlsClientSecretName:
+                  type: string
                 user:
                   type: string
               required:
@@ -5760,7 +5784,8 @@ spec:
                       type: integer
                     secretName:
                       type: string
-                    tlsClient: {}
+                    tlsClientSecretName:
+                      type: string
                     user:
                       type: string
                   required:
@@ -5779,6 +5804,8 @@ spec:
                       type: string
                     path:
                       type: string
+                    prefix:
+                      type: string
                     projectId:
                       type: string
                     secretName:
@@ -5788,6 +5815,15 @@ spec:
                   required:
                   - projectId
                   - secretName
+                  type: object
+                mydumper:
+                  properties:
+                    options:
+                      items:
+                        type: string
+                      type: array
+                    tableRegex:
+                      type: string
                   type: object
                 s3:
                   properties:
@@ -5911,6 +5947,8 @@ spec:
             persistent:
               type: boolean
             prometheus: {}
+            pvReclaimPolicy:
+              type: string
             reloader: {}
             storage:
               type: string
@@ -6002,6 +6040,8 @@ spec:
               type: object
             timezone:
               type: string
+            tlsClientSecretName:
+              type: string
           required:
           - image
           - cluster
@@ -6073,6 +6113,30 @@ spec:
               type: object
             tidb:
               properties:
+                externalEndpoint:
+                  properties:
+                    host:
+                      type: string
+                    path:
+                      type: string
+                    port:
+                      format: int32
+                      type: integer
+                    tlsSecret:
+                      properties:
+                        name:
+                          type: string
+                        namespace:
+                          type: string
+                      required:
+                      - name
+                      - namespace
+                      type: object
+                  required:
+                  - host
+                  - port
+                  - path
+                  type: object
                 maxReplicas:
                   format: int32
                   type: integer
@@ -6101,6 +6165,30 @@ spec:
               type: object
             tikv:
               properties:
+                externalEndpoint:
+                  properties:
+                    host:
+                      type: string
+                    path:
+                      type: string
+                    port:
+                      format: int32
+                      type: integer
+                    tlsSecret:
+                      properties:
+                        name:
+                          type: string
+                        namespace:
+                          type: string
+                      required:
+                      - name
+                      - namespace
+                      type: object
+                  required:
+                  - host
+                  - port
+                  - path
+                  type: object
                 maxReplicas:
                   format: int32
                   type: integer

@@ -40,6 +40,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"github.com/pingcap/tidb-operator/pkg/apis/pingcap/v1alpha1.CommonConfig":                  schema_pkg_apis_pingcap_v1alpha1_CommonConfig(ref),
 		"github.com/pingcap/tidb-operator/pkg/apis/pingcap/v1alpha1.ComponentSpec":                 schema_pkg_apis_pingcap_v1alpha1_ComponentSpec(ref),
 		"github.com/pingcap/tidb-operator/pkg/apis/pingcap/v1alpha1.Experimental":                  schema_pkg_apis_pingcap_v1alpha1_Experimental(ref),
+		"github.com/pingcap/tidb-operator/pkg/apis/pingcap/v1alpha1.ExternalEndpoint":              schema_pkg_apis_pingcap_v1alpha1_ExternalEndpoint(ref),
 		"github.com/pingcap/tidb-operator/pkg/apis/pingcap/v1alpha1.FileLogConfig":                 schema_pkg_apis_pingcap_v1alpha1_FileLogConfig(ref),
 		"github.com/pingcap/tidb-operator/pkg/apis/pingcap/v1alpha1.Flash":                         schema_pkg_apis_pingcap_v1alpha1_Flash(ref),
 		"github.com/pingcap/tidb-operator/pkg/apis/pingcap/v1alpha1.FlashCluster":                  schema_pkg_apis_pingcap_v1alpha1_FlashCluster(ref),
@@ -54,6 +55,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"github.com/pingcap/tidb-operator/pkg/apis/pingcap/v1alpha1.MasterKeyKMSConfig":            schema_pkg_apis_pingcap_v1alpha1_MasterKeyKMSConfig(ref),
 		"github.com/pingcap/tidb-operator/pkg/apis/pingcap/v1alpha1.MetricsStatus":                 schema_pkg_apis_pingcap_v1alpha1_MetricsStatus(ref),
 		"github.com/pingcap/tidb-operator/pkg/apis/pingcap/v1alpha1.MonitorContainer":              schema_pkg_apis_pingcap_v1alpha1_MonitorContainer(ref),
+		"github.com/pingcap/tidb-operator/pkg/apis/pingcap/v1alpha1.MydumperConfig":                schema_pkg_apis_pingcap_v1alpha1_MydumperConfig(ref),
 		"github.com/pingcap/tidb-operator/pkg/apis/pingcap/v1alpha1.OpenTracing":                   schema_pkg_apis_pingcap_v1alpha1_OpenTracing(ref),
 		"github.com/pingcap/tidb-operator/pkg/apis/pingcap/v1alpha1.OpenTracingReporter":           schema_pkg_apis_pingcap_v1alpha1_OpenTracingReporter(ref),
 		"github.com/pingcap/tidb-operator/pkg/apis/pingcap/v1alpha1.OpenTracingSampler":            schema_pkg_apis_pingcap_v1alpha1_OpenTracingSampler(ref),
@@ -79,13 +81,14 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"github.com/pingcap/tidb-operator/pkg/apis/pingcap/v1alpha1.RestoreList":                   schema_pkg_apis_pingcap_v1alpha1_RestoreList(ref),
 		"github.com/pingcap/tidb-operator/pkg/apis/pingcap/v1alpha1.RestoreSpec":                   schema_pkg_apis_pingcap_v1alpha1_RestoreSpec(ref),
 		"github.com/pingcap/tidb-operator/pkg/apis/pingcap/v1alpha1.S3StorageProvider":             schema_pkg_apis_pingcap_v1alpha1_S3StorageProvider(ref),
+		"github.com/pingcap/tidb-operator/pkg/apis/pingcap/v1alpha1.SecretRef":                     schema_pkg_apis_pingcap_v1alpha1_SecretRef(ref),
 		"github.com/pingcap/tidb-operator/pkg/apis/pingcap/v1alpha1.Security":                      schema_pkg_apis_pingcap_v1alpha1_Security(ref),
 		"github.com/pingcap/tidb-operator/pkg/apis/pingcap/v1alpha1.ServiceSpec":                   schema_pkg_apis_pingcap_v1alpha1_ServiceSpec(ref),
 		"github.com/pingcap/tidb-operator/pkg/apis/pingcap/v1alpha1.Status":                        schema_pkg_apis_pingcap_v1alpha1_Status(ref),
 		"github.com/pingcap/tidb-operator/pkg/apis/pingcap/v1alpha1.StmtSummary":                   schema_pkg_apis_pingcap_v1alpha1_StmtSummary(ref),
 		"github.com/pingcap/tidb-operator/pkg/apis/pingcap/v1alpha1.StorageClaim":                  schema_pkg_apis_pingcap_v1alpha1_StorageClaim(ref),
 		"github.com/pingcap/tidb-operator/pkg/apis/pingcap/v1alpha1.StorageProvider":               schema_pkg_apis_pingcap_v1alpha1_StorageProvider(ref),
-		"github.com/pingcap/tidb-operator/pkg/apis/pingcap/v1alpha1.TiCdcSpec":                     schema_pkg_apis_pingcap_v1alpha1_TiCdcSpec(ref),
+		"github.com/pingcap/tidb-operator/pkg/apis/pingcap/v1alpha1.TiCDCSpec":                     schema_pkg_apis_pingcap_v1alpha1_TiCDCSpec(ref),
 		"github.com/pingcap/tidb-operator/pkg/apis/pingcap/v1alpha1.TiDBAccessConfig":              schema_pkg_apis_pingcap_v1alpha1_TiDBAccessConfig(ref),
 		"github.com/pingcap/tidb-operator/pkg/apis/pingcap/v1alpha1.TiDBConfig":                    schema_pkg_apis_pingcap_v1alpha1_TiDBConfig(ref),
 		"github.com/pingcap/tidb-operator/pkg/apis/pingcap/v1alpha1.TiDBServiceSpec":               schema_pkg_apis_pingcap_v1alpha1_TiDBServiceSpec(ref),
@@ -769,6 +772,12 @@ func schema_pkg_apis_pingcap_v1alpha1_BackupSpec(ref common.ReferenceCallback) c
 							Ref:         ref("github.com/pingcap/tidb-operator/pkg/apis/pingcap/v1alpha1.BRConfig"),
 						},
 					},
+					"mydumper": {
+						SchemaProps: spec.SchemaProps{
+							Description: "MydumperConfig is the configs for mydumper",
+							Ref:         ref("github.com/pingcap/tidb-operator/pkg/apis/pingcap/v1alpha1.MydumperConfig"),
+						},
+					},
 					"tolerations": {
 						SchemaProps: spec.SchemaProps{
 							Description: "Base tolerations of backup Pods, components may add more tolerations upon this respectively",
@@ -806,7 +815,7 @@ func schema_pkg_apis_pingcap_v1alpha1_BackupSpec(ref common.ReferenceCallback) c
 			},
 		},
 		Dependencies: []string{
-			"github.com/pingcap/tidb-operator/pkg/apis/pingcap/v1alpha1.BRConfig", "github.com/pingcap/tidb-operator/pkg/apis/pingcap/v1alpha1.GcsStorageProvider", "github.com/pingcap/tidb-operator/pkg/apis/pingcap/v1alpha1.S3StorageProvider", "github.com/pingcap/tidb-operator/pkg/apis/pingcap/v1alpha1.TiDBAccessConfig", "k8s.io/api/core/v1.Affinity", "k8s.io/api/core/v1.Toleration"},
+			"github.com/pingcap/tidb-operator/pkg/apis/pingcap/v1alpha1.BRConfig", "github.com/pingcap/tidb-operator/pkg/apis/pingcap/v1alpha1.GcsStorageProvider", "github.com/pingcap/tidb-operator/pkg/apis/pingcap/v1alpha1.MydumperConfig", "github.com/pingcap/tidb-operator/pkg/apis/pingcap/v1alpha1.S3StorageProvider", "github.com/pingcap/tidb-operator/pkg/apis/pingcap/v1alpha1.TiDBAccessConfig", "k8s.io/api/core/v1.Affinity", "k8s.io/api/core/v1.Toleration"},
 	}
 }
 
@@ -879,12 +888,18 @@ func schema_pkg_apis_pingcap_v1alpha1_BasicAutoScalerSpec(ref common.ReferenceCa
 							Format:      "int32",
 						},
 					},
+					"externalEndpoint": {
+						SchemaProps: spec.SchemaProps{
+							Description: "ExternalEndpoint makes the auto-scaler controller able to query the external service to fetch the recommended replicas for TiKV/TiDB",
+							Ref:         ref("github.com/pingcap/tidb-operator/pkg/apis/pingcap/v1alpha1.ExternalEndpoint"),
+						},
+					},
 				},
 				Required: []string{"maxReplicas"},
 			},
 		},
 		Dependencies: []string{
-			"k8s.io/api/autoscaling/v2beta2.MetricSpec"},
+			"github.com/pingcap/tidb-operator/pkg/apis/pingcap/v1alpha1.ExternalEndpoint", "k8s.io/api/autoscaling/v2beta2.MetricSpec"},
 	}
 }
 
@@ -1183,6 +1198,49 @@ func schema_pkg_apis_pingcap_v1alpha1_Experimental(ref common.ReferenceCallback)
 	}
 }
 
+func schema_pkg_apis_pingcap_v1alpha1_ExternalEndpoint(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "ExternalEndpoint describes the external service endpoint which provides the ability to get the tikv/tidb auto-scaling recommended replicas",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"host": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Host indicates the external service's host",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"port": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Port indicates the external service's port",
+							Type:        []string{"integer"},
+							Format:      "int32",
+						},
+					},
+					"path": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Path indicates the external service's path",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"tlsSecret": {
+						SchemaProps: spec.SchemaProps{
+							Description: "TLSSecret indicates the Secret which stores the TLS configuration. If set, the operator will use https to communicate to the external service",
+							Ref:         ref("github.com/pingcap/tidb-operator/pkg/apis/pingcap/v1alpha1.SecretRef"),
+						},
+					},
+				},
+				Required: []string{"host", "port", "path"},
+			},
+		},
+		Dependencies: []string{
+			"github.com/pingcap/tidb-operator/pkg/apis/pingcap/v1alpha1.SecretRef"},
+	}
+}
+
 func schema_pkg_apis_pingcap_v1alpha1_FileLogConfig(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
@@ -1390,7 +1448,14 @@ func schema_pkg_apis_pingcap_v1alpha1_GcsStorageProvider(ref common.ReferenceCal
 					},
 					"secretName": {
 						SchemaProps: spec.SchemaProps{
-							Description: "SecretName is the name of secret which stores the gcs service account credentials JSON .",
+							Description: "SecretName is the name of secret which stores the gcs service account credentials JSON.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"prefix": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Prefix of the data path.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
@@ -1821,6 +1886,40 @@ func schema_pkg_apis_pingcap_v1alpha1_MonitorContainer(ref common.ReferenceCallb
 		},
 		Dependencies: []string{
 			"k8s.io/apimachinery/pkg/api/resource.Quantity"},
+	}
+}
+
+func schema_pkg_apis_pingcap_v1alpha1_MydumperConfig(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "MydumperConfig contains config for mydumper",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"options": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Options means options for backup data to remote storage with mydumper.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Type:   []string{"string"},
+										Format: "",
+									},
+								},
+							},
+						},
+					},
+					"tableRegex": {
+						SchemaProps: spec.SchemaProps{
+							Description: "TableRegex means Regular expression for 'db.table' matching",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+				},
+			},
+		},
 	}
 }
 
@@ -2817,6 +2916,13 @@ func schema_pkg_apis_pingcap_v1alpha1_PDSpec(ref common.ReferenceCallback) commo
 							Ref:         ref("github.com/pingcap/tidb-operator/pkg/apis/pingcap/v1alpha1.PDConfig"),
 						},
 					},
+					"tlsClientSecretName": {
+						SchemaProps: spec.SchemaProps{
+							Description: "TLSClientSecretName is the name of secret which stores tidb server client certificate which used by Dashboard.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
 				},
 				Required: []string{"replicas"},
 			},
@@ -3534,7 +3640,7 @@ func schema_pkg_apis_pingcap_v1alpha1_S3StorageProvider(ref common.ReferenceCall
 					},
 					"prefix": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Prefix for the keys.",
+							Description: "Prefix of the data path.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
@@ -3562,6 +3668,32 @@ func schema_pkg_apis_pingcap_v1alpha1_S3StorageProvider(ref common.ReferenceCall
 					},
 				},
 				Required: []string{"provider"},
+			},
+		},
+	}
+}
+
+func schema_pkg_apis_pingcap_v1alpha1_SecretRef(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "SecretRef indicates to secret ref",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"name": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"string"},
+							Format: "",
+						},
+					},
+					"namespace": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"string"},
+							Format: "",
+						},
+					},
+				},
+				Required: []string{"name", "namespace"},
 			},
 		},
 	}
@@ -3825,11 +3957,11 @@ func schema_pkg_apis_pingcap_v1alpha1_StorageProvider(ref common.ReferenceCallba
 	}
 }
 
-func schema_pkg_apis_pingcap_v1alpha1_TiCdcSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema_pkg_apis_pingcap_v1alpha1_TiCDCSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Description: "TiCdcpec contains details of TiCdc members",
+				Description: "TiCDCSpec contains details of TiCDC members",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"version": {
@@ -3972,7 +4104,7 @@ func schema_pkg_apis_pingcap_v1alpha1_TiCdcSpec(ref common.ReferenceCallback) co
 					},
 					"serviceAccount": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Specify a Service Account for TiCdc",
+							Description: "Specify a Service Account for TiCDC",
 							Type:        []string{"string"},
 							Format:      "",
 						},
@@ -4035,18 +4167,17 @@ func schema_pkg_apis_pingcap_v1alpha1_TiDBAccessConfig(ref common.ReferenceCallb
 							Format:      "",
 						},
 					},
-					"tlsClient": {
+					"tlsClientSecretName": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Whether enable the TLS connection between the SQL client and TiDB server Optional: Defaults to nil",
-							Ref:         ref("github.com/pingcap/tidb-operator/pkg/apis/pingcap/v1alpha1.TiDBTLSClient"),
+							Description: "TLSClientSecretName is the name of secret which stores tidb server client certificate Optional: Defaults to nil",
+							Type:        []string{"string"},
+							Format:      "",
 						},
 					},
 				},
 				Required: []string{"host", "secretName"},
 			},
 		},
-		Dependencies: []string{
-			"github.com/pingcap/tidb-operator/pkg/apis/pingcap/v1alpha1.TiDBTLSClient"},
 	}
 }
 
@@ -7221,12 +7352,18 @@ func schema_pkg_apis_pingcap_v1alpha1_TidbAutoScalerSpec(ref common.ReferenceCal
 							Format:      "int32",
 						},
 					},
+					"externalEndpoint": {
+						SchemaProps: spec.SchemaProps{
+							Description: "ExternalEndpoint makes the auto-scaler controller able to query the external service to fetch the recommended replicas for TiKV/TiDB",
+							Ref:         ref("github.com/pingcap/tidb-operator/pkg/apis/pingcap/v1alpha1.ExternalEndpoint"),
+						},
+					},
 				},
 				Required: []string{"maxReplicas"},
 			},
 		},
 		Dependencies: []string{
-			"k8s.io/api/autoscaling/v2beta2.MetricSpec"},
+			"github.com/pingcap/tidb-operator/pkg/apis/pingcap/v1alpha1.ExternalEndpoint", "k8s.io/api/autoscaling/v2beta2.MetricSpec"},
 	}
 }
 
@@ -7576,8 +7713,8 @@ func schema_pkg_apis_pingcap_v1alpha1_TidbClusterSpec(ref common.ReferenceCallba
 					},
 					"ticdc": {
 						SchemaProps: spec.SchemaProps{
-							Description: "TiCdc cluster spec",
-							Ref:         ref("github.com/pingcap/tidb-operator/pkg/apis/pingcap/v1alpha1.TiCdcSpec"),
+							Description: "TiCDC cluster spec",
+							Ref:         ref("github.com/pingcap/tidb-operator/pkg/apis/pingcap/v1alpha1.TiCDCSpec"),
 						},
 					},
 					"pump": {
@@ -7722,7 +7859,7 @@ func schema_pkg_apis_pingcap_v1alpha1_TidbClusterSpec(ref common.ReferenceCallba
 			},
 		},
 		Dependencies: []string{
-			"github.com/pingcap/tidb-operator/pkg/apis/pingcap/v1alpha1.HelperSpec", "github.com/pingcap/tidb-operator/pkg/apis/pingcap/v1alpha1.PDSpec", "github.com/pingcap/tidb-operator/pkg/apis/pingcap/v1alpha1.PumpSpec", "github.com/pingcap/tidb-operator/pkg/apis/pingcap/v1alpha1.TLSCluster", "github.com/pingcap/tidb-operator/pkg/apis/pingcap/v1alpha1.TiCdcSpec", "github.com/pingcap/tidb-operator/pkg/apis/pingcap/v1alpha1.TiDBSpec", "github.com/pingcap/tidb-operator/pkg/apis/pingcap/v1alpha1.TiFlashSpec", "github.com/pingcap/tidb-operator/pkg/apis/pingcap/v1alpha1.TiKVSpec", "k8s.io/api/core/v1.Affinity", "k8s.io/api/core/v1.Toleration"},
+			"github.com/pingcap/tidb-operator/pkg/apis/pingcap/v1alpha1.HelperSpec", "github.com/pingcap/tidb-operator/pkg/apis/pingcap/v1alpha1.PDSpec", "github.com/pingcap/tidb-operator/pkg/apis/pingcap/v1alpha1.PumpSpec", "github.com/pingcap/tidb-operator/pkg/apis/pingcap/v1alpha1.TLSCluster", "github.com/pingcap/tidb-operator/pkg/apis/pingcap/v1alpha1.TiCDCSpec", "github.com/pingcap/tidb-operator/pkg/apis/pingcap/v1alpha1.TiDBSpec", "github.com/pingcap/tidb-operator/pkg/apis/pingcap/v1alpha1.TiFlashSpec", "github.com/pingcap/tidb-operator/pkg/apis/pingcap/v1alpha1.TiKVSpec", "k8s.io/api/core/v1.Affinity", "k8s.io/api/core/v1.Toleration"},
 	}
 }
 
@@ -7862,6 +7999,13 @@ func schema_pkg_apis_pingcap_v1alpha1_TidbInitializerSpec(ref common.ReferenceCa
 					"timezone": {
 						SchemaProps: spec.SchemaProps{
 							Description: "Time zone of TiDB initializer Pods",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"tlsClientSecretName": {
+						SchemaProps: spec.SchemaProps{
+							Description: "TLSClientSecretName is the name of secret which stores tidb server client certificate Optional: Defaults to nil",
 							Type:        []string{"string"},
 							Format:      "",
 						},
@@ -8093,6 +8237,13 @@ func schema_pkg_apis_pingcap_v1alpha1_TidbMonitorSpec(ref common.ReferenceCallba
 							Ref: ref("github.com/pingcap/tidb-operator/pkg/apis/pingcap/v1alpha1.InitializerSpec"),
 						},
 					},
+					"pvReclaimPolicy": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Persistent volume reclaim policy applied to the PVs that consumed by TiDB cluster",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
 					"imagePullPolicy": {
 						SchemaProps: spec.SchemaProps{
 							Type:   []string{"string"},
@@ -8249,12 +8400,18 @@ func schema_pkg_apis_pingcap_v1alpha1_TikvAutoScalerSpec(ref common.ReferenceCal
 							Format:      "int32",
 						},
 					},
+					"externalEndpoint": {
+						SchemaProps: spec.SchemaProps{
+							Description: "ExternalEndpoint makes the auto-scaler controller able to query the external service to fetch the recommended replicas for TiKV/TiDB",
+							Ref:         ref("github.com/pingcap/tidb-operator/pkg/apis/pingcap/v1alpha1.ExternalEndpoint"),
+						},
+					},
 				},
 				Required: []string{"maxReplicas"},
 			},
 		},
 		Dependencies: []string{
-			"k8s.io/api/autoscaling/v2beta2.MetricSpec"},
+			"github.com/pingcap/tidb-operator/pkg/apis/pingcap/v1alpha1.ExternalEndpoint", "k8s.io/api/autoscaling/v2beta2.MetricSpec"},
 	}
 }
 
