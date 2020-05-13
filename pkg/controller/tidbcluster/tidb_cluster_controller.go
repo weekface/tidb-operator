@@ -220,6 +220,8 @@ func NewController(
 				pdControl,
 				typedControl,
 				deployInformer.Lister(),
+				svcInformer.Lister(),
+				svcControl,
 				deployControl,
 			),
 			mm.NewTidbDiscoveryManager(typedControl),

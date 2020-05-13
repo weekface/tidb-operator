@@ -322,15 +322,20 @@ func (l Label) TiFlash() Label {
 	return l
 }
 
-// TiCdc assigns ticdc to component key in label
-func (l Label) TiCdc() Label {
+// IsTiFlash returns whether label is a TiFlash
+func (l Label) IsTiFlash() bool {
+	return l[ComponentLabelKey] == TiFlashLabelVal
+}
+
+// TiCDC assigns ticdc to component key in label
+func (l Label) TiCDC() Label {
 	l.Component(TiCdcLabelVal)
 	return l
 }
 
-// IsTiFlash returns whether label is a TiFlash
-func (l Label) IsTiFlash() bool {
-	return l[ComponentLabelKey] == TiFlashLabelVal
+// IsTiCDC returns whether label is a TiCDC
+func (l Label) IsTiCDC() bool {
+	return l[ComponentLabelKey] == TiCdcLabelVal
 }
 
 // IsTiKV returns whether label is a TiKV

@@ -15,6 +15,7 @@ package member
 
 import (
 	"fmt"
+	"k8s.io/apimachinery/pkg/util/intstr"
 
 	"github.com/pingcap/tidb-operator/pkg/apis/pingcap/v1alpha1"
 	"github.com/pingcap/tidb-operator/pkg/controller"
@@ -26,6 +27,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	appslisters "k8s.io/client-go/listers/apps/v1"
+	corelisters "k8s.io/client-go/listers/core/v1"
 	"k8s.io/klog"
 )
 
@@ -34,6 +36,8 @@ type ticdcMemberManager struct {
 	pdControl     pdapi.PDControlInterface
 	typedControl  controller.TypedControlInterface
 	deployLister  appslisters.DeploymentLister
+	svcLister     corelisters.ServiceLister
+	svcControl    controller.ServiceControlInterface
 	deployControl controller.DeploymentControlInterface
 }
 
@@ -42,11 +46,15 @@ func NewTiCdcMemberManager(
 	pdControl pdapi.PDControlInterface,
 	typedControl controller.TypedControlInterface,
 	deployLister appslisters.DeploymentLister,
+	svcLister corelisters.ServiceLister,
+	svcControl controller.ServiceControlInterface,
 	deployControl controller.DeploymentControlInterface) manager.Manager {
 	return &ticdcMemberManager{
 		pdControl:     pdControl,
 		typedControl:  typedControl,
 		deployLister:  deployLister,
+		svcLister:     svcLister,
+		svcControl:    svcControl,
 		deployControl: deployControl,
 	}
 }
@@ -74,6 +82,11 @@ func (tcmm *ticdcMemberManager) syncDeployment(tc *v1alpha1.TidbCluster) error {
 	ns := tc.GetNamespace()
 	tcName := tc.GetName()
 
+	if tc.Spec.Paused {
+		klog.V(4).Infof("tidb cluster %s/%s is paused, skip syncing ticdc", ns, tcName)
+		return nil
+	}
+
 	oldDeployTmp, err := tcmm.deployLister.Deployments(ns).Get(controller.TiCdcMemberName(tcName))
 	if err != nil && !errors.IsNotFound(err) {
 		return err
@@ -83,6 +96,11 @@ func (tcmm *ticdcMemberManager) syncDeployment(tc *v1alpha1.TidbCluster) error {
 	oldDeploy := oldDeployTmp.DeepCopy()
 
 	if err := tcmm.syncTiCdcStatus(tc, oldDeploy); err != nil {
+		return err
+	}
+
+	// Sync CDC Headless Service
+	if err := tcmm.syncCDCHeadlessService(tc); err != nil {
 		return err
 	}
 
@@ -103,7 +121,10 @@ func (tcmm *ticdcMemberManager) syncDeployment(tc *v1alpha1.TidbCluster) error {
 		return nil
 	}
 
-	// TODO: skip upgrade if pd or tikv is upgrading
+	if tc.PDUpgrading() || tc.TiKVUpgrading() {
+		klog.Warningf("pd or tikv is upgrading, skipping upgrade ticdc")
+		return nil
+	}
 
 	return updateDeployment(tcmm.deployControl, tc, newDeploy, oldDeploy)
 }
@@ -111,6 +132,74 @@ func (tcmm *ticdcMemberManager) syncDeployment(tc *v1alpha1.TidbCluster) error {
 // TODO add syncTiCdcStatus
 func (tcmm *ticdcMemberManager) syncTiCdcStatus(tc *v1alpha1.TidbCluster, deploy *apps.Deployment) error {
 	return nil
+}
+
+func (tcmm *ticdcMemberManager) syncCDCHeadlessService(tc *v1alpha1.TidbCluster) error {
+	ns := tc.GetNamespace()
+	tcName := tc.GetName()
+
+	newSvc := getNewCDCHeadlessService(tc)
+	oldSvcTmp, err := tcmm.svcLister.Services(ns).Get(controller.TiCDCPeerMemberName(tcName))
+	if errors.IsNotFound(err) {
+		err = controller.SetServiceLastAppliedConfigAnnotation(newSvc)
+		if err != nil {
+			return err
+		}
+		return tcmm.svcControl.CreateService(tc, newSvc)
+	}
+	if err != nil {
+		return err
+	}
+
+	oldSvc := oldSvcTmp.DeepCopy()
+
+	equal, err := controller.ServiceEqual(newSvc, oldSvc)
+	if err != nil {
+		return err
+	}
+	if !equal {
+		svc := *oldSvc
+		svc.Spec = newSvc.Spec
+		err = controller.SetServiceLastAppliedConfigAnnotation(&svc)
+		if err != nil {
+			return err
+		}
+		_, err = tcmm.svcControl.UpdateService(tc, &svc)
+		return err
+	}
+
+	return nil
+}
+
+func getNewCDCHeadlessService(tc *v1alpha1.TidbCluster) *corev1.Service {
+	ns := tc.Namespace
+	tcName := tc.Name
+	instanceName := tc.GetInstanceName()
+	svcName := controller.TiCDCPeerMemberName(tcName)
+	svcLabel := label.New().Instance(instanceName).TiCDC().Labels()
+
+	svc := corev1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:            svcName,
+			Namespace:       ns,
+			Labels:          svcLabel,
+			OwnerReferences: []metav1.OwnerReference{controller.GetOwnerRef(tc)},
+		},
+		Spec: corev1.ServiceSpec{
+			ClusterIP: "None",
+			Ports: []corev1.ServicePort{
+				{
+					Name:       "ticdc",
+					Port:       8301,
+					TargetPort: intstr.FromInt(int(8301)),
+					Protocol:   corev1.ProtocolTCP,
+				},
+			},
+			Selector:                 svcLabel,
+			PublishNotReadyAddresses: true,
+		},
+	}
+	return &svc
 }
 
 func getNewDeployment(tc *v1alpha1.TidbCluster) (*apps.Deployment, error) {
@@ -123,7 +212,22 @@ func getNewDeployment(tc *v1alpha1.TidbCluster) (*apps.Deployment, error) {
 	podAnnotations := CombineAnnotations(controller.AnnProm(8301), baseTiCdcSpec.Annotations())
 	deployAnnotations := getStsAnnotations(tc, label.TiCdcLabelVal)
 
-	cmd := fmt.Sprintf("/cdc server --pd=%s-pd:2379 --log-file=\"\" --status-addr=0.0.0.0:8301", tcName)
+	cmd := fmt.Sprintf("/cdc server --pd=http://%s-pd:2379 --log-file=\"/dev/stderr\" "+
+		"--addr=0.0.0.0:8301 --advertise-addr=${POD_NAME}:8301", tcName)
+	env := []corev1.EnvVar{
+		{
+			Name: "POD_NAME",
+			ValueFrom: &corev1.EnvVarSource{
+				FieldRef: &corev1.ObjectFieldSelector{
+					FieldPath: "metadata.name",
+				},
+			},
+		},
+		{
+			Name:  "TZ",
+			Value: tc.TiCDCTimezone(),
+		},
+	}
 
 	ticdcContainer := corev1.Container{
 		Name:            v1alpha1.TiCdcMemberType.String(),
@@ -132,12 +236,13 @@ func getNewDeployment(tc *v1alpha1.TidbCluster) (*apps.Deployment, error) {
 		Command:         []string{"/bin/sh", "-c", cmd},
 		Ports: []corev1.ContainerPort{
 			{
-				Name:          "status",
+				Name:          "ticdc",
 				ContainerPort: int32(8301),
 				Protocol:      corev1.ProtocolTCP,
 			},
 		},
 		Resources: controller.ContainerResource(tc.Spec.TiCdc.ResourceRequirements),
+		Env:       env,
 	}
 	podSpec := baseTiCdcSpec.BuildPodSpec()
 	podSpec.Containers = []corev1.Container{ticdcContainer}
@@ -168,7 +273,7 @@ func getNewDeployment(tc *v1alpha1.TidbCluster) (*apps.Deployment, error) {
 
 func labelTiCdc(tc *v1alpha1.TidbCluster) label.Label {
 	instanceName := tc.GetInstanceName()
-	return label.New().Instance(instanceName).TiCdc()
+	return label.New().Instance(instanceName).TiCDC()
 }
 
 type FakeTiCdcMemberManager struct {

@@ -541,3 +541,11 @@ func (tc *TidbCluster) SkipTLSWhenConnectTiDB() bool {
 	_, ok := tc.Annotations[label.AnnSkipTLSWhenConnectTiDB]
 	return ok
 }
+
+func (tc *TidbCluster) TiCDCTimezone() string {
+	if tc.Spec.TiCdc.Timezone != nil {
+		return *tc.Spec.TiCdc.Timezone
+	}
+
+	return "UTC"
+}

@@ -399,6 +399,11 @@ type TiCDCSpec struct {
 	// +kubebuilder:default=pingcap/ticdc
 	// +optional
 	BaseImage string `json:"baseImage"`
+
+	// Time zone of TiCDC
+	// Optional: Defaults to UTC
+	// +optional
+	Timezone *string `json:"timezone,omitempty"`
 }
 
 // +k8s:openapi-gen=true
