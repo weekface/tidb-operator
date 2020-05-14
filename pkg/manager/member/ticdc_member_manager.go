@@ -15,7 +15,7 @@ package member
 
 import (
 	"fmt"
-	"k8s.io/apimachinery/pkg/util/intstr"
+	"strings"
 
 	"github.com/pingcap/tidb-operator/pkg/apis/pingcap/v1alpha1"
 	"github.com/pingcap/tidb-operator/pkg/controller"
@@ -26,6 +26,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	appslisters "k8s.io/client-go/listers/apps/v1"
 	corelisters "k8s.io/client-go/listers/core/v1"
 	"k8s.io/klog"
@@ -41,8 +42,8 @@ type ticdcMemberManager struct {
 	deployControl controller.DeploymentControlInterface
 }
 
-// NewTiCdcMemberManager returns a *ticdcMemberManager
-func NewTiCdcMemberManager(
+// NewTiCDCMemberManager returns a *ticdcMemberManager
+func NewTiCDCMemberManager(
 	pdControl pdapi.PDControlInterface,
 	typedControl controller.TypedControlInterface,
 	deployLister appslisters.DeploymentLister,
@@ -64,7 +65,7 @@ func (tcmm *ticdcMemberManager) Sync(tc *v1alpha1.TidbCluster) error {
 	ns := tc.GetNamespace()
 	tcName := tc.GetName()
 
-	if tc.Spec.TiCdc == nil {
+	if tc.Spec.TiCDC == nil {
 		return nil
 	}
 	if tc.Spec.Paused {
@@ -87,7 +88,7 @@ func (tcmm *ticdcMemberManager) syncDeployment(tc *v1alpha1.TidbCluster) error {
 		return nil
 	}
 
-	oldDeployTmp, err := tcmm.deployLister.Deployments(ns).Get(controller.TiCdcMemberName(tcName))
+	oldDeployTmp, err := tcmm.deployLister.Deployments(ns).Get(controller.TiCDCMemberName(tcName))
 	if err != nil && !errors.IsNotFound(err) {
 		return err
 	}
@@ -95,7 +96,7 @@ func (tcmm *ticdcMemberManager) syncDeployment(tc *v1alpha1.TidbCluster) error {
 	deployNotExist := errors.IsNotFound(err)
 	oldDeploy := oldDeployTmp.DeepCopy()
 
-	if err := tcmm.syncTiCdcStatus(tc, oldDeploy); err != nil {
+	if err := tcmm.syncTiCDCStatus(tc, oldDeploy); err != nil {
 		return err
 	}
 
@@ -129,8 +130,8 @@ func (tcmm *ticdcMemberManager) syncDeployment(tc *v1alpha1.TidbCluster) error {
 	return updateDeployment(tcmm.deployControl, tc, newDeploy, oldDeploy)
 }
 
-// TODO add syncTiCdcStatus
-func (tcmm *ticdcMemberManager) syncTiCdcStatus(tc *v1alpha1.TidbCluster, deploy *apps.Deployment) error {
+// TODO add syncTiCDCStatus
+func (tcmm *ticdcMemberManager) syncTiCDCStatus(tc *v1alpha1.TidbCluster, deploy *apps.Deployment) error {
 	return nil
 }
 
@@ -206,14 +207,20 @@ func getNewDeployment(tc *v1alpha1.TidbCluster) (*apps.Deployment, error) {
 	ns := tc.GetNamespace()
 	tcName := tc.GetName()
 
-	baseTiCdcSpec := tc.BaseTiCdcSpec()
-	ticdcLabel := labelTiCdc(tc)
-	deployName := controller.TiCdcMemberName(tcName)
-	podAnnotations := CombineAnnotations(controller.AnnProm(8301), baseTiCdcSpec.Annotations())
-	deployAnnotations := getStsAnnotations(tc, label.TiCdcLabelVal)
+	baseTiCDCSpec := tc.BaseTiCDCSpec()
+	ticdcLabel := labelTiCDC(tc)
+	deployName := controller.TiCDCMemberName(tcName)
+	podAnnotations := CombineAnnotations(controller.AnnProm(8301), baseTiCDCSpec.Annotations())
+	deployAnnotations := getStsAnnotations(tc, label.TiCDCLabelVal)
 
-	cmd := fmt.Sprintf("/cdc server --pd=http://%s-pd:2379 --log-file=\"/dev/stderr\" "+
-		"--addr=0.0.0.0:8301 --advertise-addr=${POD_NAME}:8301", tcName)
+	cmdArgs := []string{"/cdc server", "--addr=0.0.0.0:8301", "--advertise-addr=${POD_NAME}:8301"}
+	cmdArgs = append(cmdArgs, fmt.Sprintf("--pd=http://%s-pd:2379", tcName))
+	cmdArgs = append(cmdArgs, fmt.Sprintf("--tz=%s", tc.TiCDCTimezone()))
+	cmdArgs = append(cmdArgs, fmt.Sprintf("--gc-ttl=%d", tc.TiCDCGCTTL()))
+	cmdArgs = append(cmdArgs, fmt.Sprintf("--log-file=%s", tc.TiCDCLogFile()))
+	cmdArgs = append(cmdArgs, fmt.Sprintf("--log-level=%s", tc.TiCDCLogLevel()))
+	cmd := strings.Join(cmdArgs, " ")
+
 	env := []corev1.EnvVar{
 		{
 			Name: "POD_NAME",
@@ -223,16 +230,12 @@ func getNewDeployment(tc *v1alpha1.TidbCluster) (*apps.Deployment, error) {
 				},
 			},
 		},
-		{
-			Name:  "TZ",
-			Value: tc.TiCDCTimezone(),
-		},
 	}
 
 	ticdcContainer := corev1.Container{
-		Name:            v1alpha1.TiCdcMemberType.String(),
-		Image:           tc.TiCdcImage(),
-		ImagePullPolicy: baseTiCdcSpec.ImagePullPolicy(),
+		Name:            v1alpha1.TiCDCMemberType.String(),
+		Image:           tc.TiCDCImage(),
+		ImagePullPolicy: baseTiCDCSpec.ImagePullPolicy(),
 		Command:         []string{"/bin/sh", "-c", cmd},
 		Ports: []corev1.ContainerPort{
 			{
@@ -241,12 +244,12 @@ func getNewDeployment(tc *v1alpha1.TidbCluster) (*apps.Deployment, error) {
 				Protocol:      corev1.ProtocolTCP,
 			},
 		},
-		Resources: controller.ContainerResource(tc.Spec.TiCdc.ResourceRequirements),
+		Resources: controller.ContainerResource(tc.Spec.TiCDC.ResourceRequirements),
 		Env:       env,
 	}
-	podSpec := baseTiCdcSpec.BuildPodSpec()
+	podSpec := baseTiCDCSpec.BuildPodSpec()
 	podSpec.Containers = []corev1.Container{ticdcContainer}
-	podSpec.ServiceAccountName = tc.Spec.TiCdc.ServiceAccount
+	podSpec.ServiceAccountName = tc.Spec.TiCDC.ServiceAccount
 
 	ticdcDeploy := &apps.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
@@ -257,7 +260,7 @@ func getNewDeployment(tc *v1alpha1.TidbCluster) (*apps.Deployment, error) {
 			OwnerReferences: []metav1.OwnerReference{controller.GetOwnerRef(tc)},
 		},
 		Spec: apps.DeploymentSpec{
-			Replicas: controller.Int32Ptr(tc.TiCdcDeployDesiredReplicas()),
+			Replicas: controller.Int32Ptr(tc.TiCDCDeployDesiredReplicas()),
 			Selector: ticdcLabel.LabelSelector(),
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
@@ -271,24 +274,24 @@ func getNewDeployment(tc *v1alpha1.TidbCluster) (*apps.Deployment, error) {
 	return ticdcDeploy, nil
 }
 
-func labelTiCdc(tc *v1alpha1.TidbCluster) label.Label {
+func labelTiCDC(tc *v1alpha1.TidbCluster) label.Label {
 	instanceName := tc.GetInstanceName()
 	return label.New().Instance(instanceName).TiCDC()
 }
 
-type FakeTiCdcMemberManager struct {
+type FakeTiCDCMemberManager struct {
 	err error
 }
 
-func NewFakeTiCdcMemberManager() *FakeTiCdcMemberManager {
-	return &FakeTiCdcMemberManager{}
+func NewFakeTiCDCMemberManager() *FakeTiCDCMemberManager {
+	return &FakeTiCDCMemberManager{}
 }
 
-func (ftmm *FakeTiCdcMemberManager) SetSyncError(err error) {
+func (ftmm *FakeTiCDCMemberManager) SetSyncError(err error) {
 	ftmm.err = err
 }
 
-func (ftmm *FakeTiCdcMemberManager) Sync(tc *v1alpha1.TidbCluster) error {
+func (ftmm *FakeTiCDCMemberManager) Sync(tc *v1alpha1.TidbCluster) error {
 	if ftmm.err != nil {
 		return ftmm.err
 	}

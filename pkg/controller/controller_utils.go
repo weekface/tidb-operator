@@ -252,8 +252,8 @@ func TiFlashMemberName(clusterName string) string {
 	return fmt.Sprintf("%s-tiflash", clusterName)
 }
 
-// TiCdcMemberName returns ticdc member name
-func TiCdcMemberName(clusterName string) string {
+// TiCDCMemberName returns ticdc member name
+func TiCDCMemberName(clusterName string) string {
 	return fmt.Sprintf("%s-ticdc", clusterName)
 }
 

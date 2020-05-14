@@ -102,12 +102,12 @@ func (tc *TidbCluster) TiFlashImage() string {
 	return image
 }
 
-func (tc *TidbCluster) TiCdcImage() string {
-	image := tc.Spec.TiCdc.Image
-	baseImage := tc.Spec.TiCdc.BaseImage
+func (tc *TidbCluster) TiCDCImage() string {
+	image := tc.Spec.TiCDC.Image
+	baseImage := tc.Spec.TiCDC.BaseImage
 	// base image takes higher priority
 	if baseImage != "" {
-		version := tc.Spec.TiCdc.Version
+		version := tc.Spec.TiCDC.Version
 		if version == nil {
 			version = &tc.Spec.Version
 		}
@@ -350,8 +350,8 @@ func (tc *TidbCluster) TiFlashStsDesiredReplicas() int32 {
 	return tc.Spec.TiFlash.Replicas + int32(len(tc.Status.TiFlash.FailureStores))
 }
 
-func (tc *TidbCluster) TiCdcDeployDesiredReplicas() int32 {
-	return tc.Spec.TiCdc.Replicas
+func (tc *TidbCluster) TiCDCDeployDesiredReplicas() int32 {
+	return tc.Spec.TiCDC.Replicas
 }
 
 func (tc *TidbCluster) TiFlashStsActualReplicas() int32 {
@@ -543,9 +543,33 @@ func (tc *TidbCluster) SkipTLSWhenConnectTiDB() bool {
 }
 
 func (tc *TidbCluster) TiCDCTimezone() string {
-	if tc.Spec.TiCdc.Timezone != nil {
-		return *tc.Spec.TiCdc.Timezone
+	if tc.Spec.TiCDC.Timezone != nil {
+		return *tc.Spec.TiCDC.Timezone
 	}
 
 	return "UTC"
+}
+
+func (tc *TidbCluster) TiCDCGCTTL() int32 {
+	if tc.Spec.TiCDC.GCTTL != nil {
+		return *tc.Spec.TiCDC.GCTTL
+	}
+
+	return 86400
+}
+
+func (tc *TidbCluster) TiCDCLogFile() string {
+	if tc.Spec.TiCDC.LogFile != nil {
+		return *tc.Spec.TiCDC.LogFile
+	}
+
+	return "/dev/stderr"
+}
+
+func (tc *TidbCluster) TiCDCLogLevel() string {
+	if tc.Spec.TiCDC.LogLevel != nil {
+		return *tc.Spec.TiCDC.LogLevel
+	}
+
+	return "info"
 }

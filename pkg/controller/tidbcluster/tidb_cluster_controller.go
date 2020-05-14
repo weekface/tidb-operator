@@ -216,7 +216,7 @@ func NewController(
 				tiflashScaler,
 				tiflashUpgrader,
 			),
-			mm.NewTiCdcMemberManager(
+			mm.NewTiCDCMemberManager(
 				pdControl,
 				typedControl,
 				deployInformer.Lister(),

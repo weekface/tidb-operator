@@ -45,8 +45,8 @@ const (
 	TiKVMemberType MemberType = "tikv"
 	// TiFlashMemberType is tiflash container type
 	TiFlashMemberType MemberType = "tiflash"
-	// TiCdcMemberType is ticdc container type
-	TiCdcMemberType MemberType = "ticdc"
+	// TiCDCMemberType is ticdc container type
+	TiCDCMemberType MemberType = "ticdc"
 	// SlowLogTailerMemberType is tidb log tailer container type
 	SlowLogTailerMemberType MemberType = "slowlog"
 	// UnknownMemberType is unknown container type
@@ -404,6 +404,18 @@ type TiCDCSpec struct {
 	// Optional: Defaults to UTC
 	// +optional
 	Timezone *string `json:"timezone,omitempty"`
+
+	// CDC GC safepoint TTL duration, specified in seconds
+	// +optional
+	GCTTL *int32 `json:"gcTTL,omitempty"`
+
+	// LogLevel is the log level
+	// +optional
+	LogLevel *string `json:"logLevel,omitempty"`
+
+	// LogFile is the log file
+	// +optional
+	LogFile *string `json:"logFile,omitempty"`
 }
 
 // +k8s:openapi-gen=true
