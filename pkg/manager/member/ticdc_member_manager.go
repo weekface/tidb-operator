@@ -34,29 +34,29 @@ import (
 
 // ticdcMemberManager implements manager.Manager.
 type ticdcMemberManager struct {
-	pdControl     pdapi.PDControlInterface
-	typedControl  controller.TypedControlInterface
-	deployLister  appslisters.DeploymentLister
-	svcLister     corelisters.ServiceLister
-	svcControl    controller.ServiceControlInterface
-	deployControl controller.DeploymentControlInterface
+	pdControl    pdapi.PDControlInterface
+	typedControl controller.TypedControlInterface
+	stsLister    appslisters.StatefulSetLister
+	svcLister    corelisters.ServiceLister
+	svcControl   controller.ServiceControlInterface
+	stsControl   controller.StatefulSetControlInterface
 }
 
 // NewTiCDCMemberManager returns a *ticdcMemberManager
 func NewTiCDCMemberManager(
 	pdControl pdapi.PDControlInterface,
 	typedControl controller.TypedControlInterface,
-	deployLister appslisters.DeploymentLister,
+	stsLister appslisters.StatefulSetLister,
 	svcLister corelisters.ServiceLister,
 	svcControl controller.ServiceControlInterface,
-	deployControl controller.DeploymentControlInterface) manager.Manager {
+	stsControl controller.StatefulSetControlInterface) manager.Manager {
 	return &ticdcMemberManager{
-		pdControl:     pdControl,
-		typedControl:  typedControl,
-		deployLister:  deployLister,
-		svcLister:     svcLister,
-		svcControl:    svcControl,
-		deployControl: deployControl,
+		pdControl:    pdControl,
+		typedControl: typedControl,
+		stsLister:    stsLister,
+		svcLister:    svcLister,
+		svcControl:   svcControl,
+		stsControl:   stsControl,
 	}
 }
 
@@ -76,41 +76,41 @@ func (tcmm *ticdcMemberManager) Sync(tc *v1alpha1.TidbCluster) error {
 		return controller.RequeueErrorf("TidbCluster: %s/%s, waiting for PD cluster running", ns, tcName)
 	}
 
-	return tcmm.syncDeployment(tc)
-}
-
-func (tcmm *ticdcMemberManager) syncDeployment(tc *v1alpha1.TidbCluster) error {
-	ns := tc.GetNamespace()
-	tcName := tc.GetName()
-
-	oldDeployTmp, err := tcmm.deployLister.Deployments(ns).Get(controller.TiCDCMemberName(tcName))
-	if err != nil && !errors.IsNotFound(err) {
-		return err
-	}
-
-	deployNotExist := errors.IsNotFound(err)
-	oldDeploy := oldDeployTmp.DeepCopy()
-
-	if err := tcmm.syncTiCDCStatus(tc, oldDeploy); err != nil {
-		return err
-	}
-
 	// Sync CDC Headless Service
 	if err := tcmm.syncCDCHeadlessService(tc); err != nil {
 		return err
 	}
 
-	newDeploy, err := getNewDeployment(tc)
+	return tcmm.syncStatefulSet(tc)
+}
+
+func (tcmm *ticdcMemberManager) syncStatefulSet(tc *v1alpha1.TidbCluster) error {
+	ns := tc.GetNamespace()
+	tcName := tc.GetName()
+
+	oldStsTmp, err := tcmm.stsLister.StatefulSets(ns).Get(controller.TiCDCMemberName(tcName))
+	if err != nil && !errors.IsNotFound(err) {
+		return err
+	}
+
+	stsNotExist := errors.IsNotFound(err)
+	oldSts := oldStsTmp.DeepCopy()
+
+	if err := tcmm.syncTiCDCStatus(tc, oldSts); err != nil {
+		return err
+	}
+
+	newSts, err := getNewTiCDCStatefulSet(tc)
 	if err != nil {
 		return err
 	}
 
-	if deployNotExist {
-		err = SetDeploymentLastAppliedConfigAnnotation(newDeploy)
+	if stsNotExist {
+		err = SetStatefulSetLastAppliedConfigAnnotation(newSts)
 		if err != nil {
 			return err
 		}
-		err = tcmm.deployControl.CreateDeployment(tc, newDeploy)
+		err = tcmm.stsControl.CreateStatefulSet(tc, newSts)
 		if err != nil {
 			return err
 		}
@@ -122,11 +122,11 @@ func (tcmm *ticdcMemberManager) syncDeployment(tc *v1alpha1.TidbCluster) error {
 		return nil
 	}
 
-	return updateDeployment(tcmm.deployControl, tc, newDeploy, oldDeploy)
+	return updateStatefulSet(tcmm.stsControl, tc, newSts, oldSts)
 }
 
-// TODO add syncTiCDCStatus
-func (tcmm *ticdcMemberManager) syncTiCDCStatus(tc *v1alpha1.TidbCluster, deploy *apps.Deployment) error {
+// TODO syncTiCDCStatus
+func (tcmm *ticdcMemberManager) syncTiCDCStatus(tc *v1alpha1.TidbCluster, sts *apps.StatefulSet) error {
 	return nil
 }
 
@@ -198,16 +198,18 @@ func getNewCDCHeadlessService(tc *v1alpha1.TidbCluster) *corev1.Service {
 	return &svc
 }
 
-func getNewDeployment(tc *v1alpha1.TidbCluster) (*apps.Deployment, error) {
+func getNewTiCDCStatefulSet(tc *v1alpha1.TidbCluster) (*apps.StatefulSet, error) {
 	ns := tc.GetNamespace()
 	tcName := tc.GetName()
 
 	baseTiCDCSpec := tc.BaseTiCDCSpec()
 	ticdcLabel := labelTiCDC(tc)
-	deployName := controller.TiCDCMemberName(tcName)
+	stsName := controller.TiCDCMemberName(tcName)
 	podAnnotations := CombineAnnotations(controller.AnnProm(8301), baseTiCDCSpec.Annotations())
+	stsAnnotations := getStsAnnotations(tc, label.TiCDCLabelVal)
+	headlessSvcName := controller.TiCDCPeerMemberName(tcName)
 
-	cmdArgs := []string{"/cdc server", "--addr=0.0.0.0:8301", "--advertise-addr=${POD_NAME}:8301"}
+	cmdArgs := []string{"/cdc server", "--addr=0.0.0.0:8301", "--advertise-addr=${POD_NAME}.${HEADLESS_SERVICE_NAME}.${NAMESPACE}.svc:8301"}
 	cmdArgs = append(cmdArgs, fmt.Sprintf("--pd=http://%s-pd:2379", tcName))
 	cmdArgs = append(cmdArgs, fmt.Sprintf("--tz=%s", tc.TiCDCTimezone()))
 	cmdArgs = append(cmdArgs, fmt.Sprintf("--gc-ttl=%d", tc.TiCDCGCTTL()))
@@ -223,6 +225,18 @@ func getNewDeployment(tc *v1alpha1.TidbCluster) (*apps.Deployment, error) {
 					FieldPath: "metadata.name",
 				},
 			},
+		},
+		{
+			Name: "NAMESPACE",
+			ValueFrom: &corev1.EnvVarSource{
+				FieldRef: &corev1.ObjectFieldSelector{
+					FieldPath: "metadata.namespace",
+				},
+			},
+		},
+		{
+			Name:  "HEADLESS_SERVICE_NAME",
+			Value: headlessSvcName,
 		},
 	}
 
@@ -245,14 +259,15 @@ func getNewDeployment(tc *v1alpha1.TidbCluster) (*apps.Deployment, error) {
 	podSpec.Containers = []corev1.Container{ticdcContainer}
 	podSpec.ServiceAccountName = tc.Spec.TiCDC.ServiceAccount
 
-	ticdcDeploy := &apps.Deployment{
+	ticdcSts := &apps.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:            deployName,
+			Name:            stsName,
 			Namespace:       ns,
 			Labels:          ticdcLabel.Labels(),
+			Annotations:     stsAnnotations,
 			OwnerReferences: []metav1.OwnerReference{controller.GetOwnerRef(tc)},
 		},
-		Spec: apps.DeploymentSpec{
+		Spec: apps.StatefulSetSpec{
 			Replicas: controller.Int32Ptr(tc.TiCDCDeployDesiredReplicas()),
 			Selector: ticdcLabel.LabelSelector(),
 			Template: corev1.PodTemplateSpec{
@@ -262,9 +277,14 @@ func getNewDeployment(tc *v1alpha1.TidbCluster) (*apps.Deployment, error) {
 				},
 				Spec: podSpec,
 			},
+			ServiceName:         headlessSvcName,
+			PodManagementPolicy: apps.ParallelPodManagement,
+			UpdateStrategy: apps.StatefulSetUpdateStrategy{
+				Type: apps.RollingUpdateStatefulSetStrategyType,
+			},
 		},
 	}
-	return ticdcDeploy, nil
+	return ticdcSts, nil
 }
 
 func labelTiCDC(tc *v1alpha1.TidbCluster) label.Label {

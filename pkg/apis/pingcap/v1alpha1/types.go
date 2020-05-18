@@ -400,6 +400,14 @@ type TiCDCSpec struct {
 	// +optional
 	BaseImage string `json:"baseImage"`
 
+	// Config is the Configuration of tidbcdc servers
+	// +optional
+	Config *TiCDCConfig `json:"config,omitempty"`
+}
+
+// TiCDCConfig is the configuration of tidbcdc
+// +k8s:openapi-gen=true
+type TiCDCConfig struct {
 	// Time zone of TiCDC
 	// Optional: Defaults to UTC
 	// +optional

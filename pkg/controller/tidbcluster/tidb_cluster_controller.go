@@ -85,7 +85,6 @@ func NewController(
 
 	tcInformer := informerFactory.Pingcap().V1alpha1().TidbClusters()
 	setInformer := kubeInformerFactory.Apps().V1().StatefulSets()
-	deployInformer := kubeInformerFactory.Apps().V1().Deployments()
 	svcInformer := kubeInformerFactory.Core().V1().Services()
 	epsInformer := kubeInformerFactory.Core().V1().Endpoints()
 	pvcInformer := kubeInformerFactory.Core().V1().PersistentVolumeClaims()
@@ -99,7 +98,6 @@ func NewController(
 	tidbControl := controller.NewDefaultTiDBControl(kubeCli)
 	cmControl := controller.NewRealConfigMapControl(kubeCli, recorder)
 	setControl := controller.NewRealStatefuSetControl(kubeCli, setInformer.Lister(), recorder)
-	deployControl := controller.NewRealDeploymentControl(kubeCli, deployInformer.Lister(), recorder)
 	svcControl := controller.NewRealServiceControl(kubeCli, svcInformer.Lister(), recorder)
 	pvControl := controller.NewRealPVControl(kubeCli, pvcInformer.Lister(), pvInformer.Lister(), recorder)
 	pvcControl := controller.NewRealPVCControl(kubeCli, recorder, pvcInformer.Lister())
@@ -219,10 +217,10 @@ func NewController(
 			mm.NewTiCDCMemberManager(
 				pdControl,
 				typedControl,
-				deployInformer.Lister(),
+				setInformer.Lister(),
 				svcInformer.Lister(),
 				svcControl,
-				deployControl,
+				setControl,
 			),
 			mm.NewTidbDiscoveryManager(typedControl),
 			podRestarter,
