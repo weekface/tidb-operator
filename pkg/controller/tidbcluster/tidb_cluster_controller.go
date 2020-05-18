@@ -223,6 +223,7 @@ func NewController(
 				setControl,
 			),
 			mm.NewTidbDiscoveryManager(typedControl),
+			mm.NewTidbClusterStatusManager(cli),
 			podRestarter,
 			&tidbClusterConditionUpdater{},
 			recorder,
