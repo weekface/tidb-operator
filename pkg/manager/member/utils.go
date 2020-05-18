@@ -377,7 +377,6 @@ func updateDeployment(deployCtl controller.DeploymentControlInterface, tc *v1alp
 	if !deploymentEqual(*newDeploy, *oldDeploy) || isOrphan {
 		deploy := *oldDeploy
 		deploy.Spec = newDeploy.Spec
-		deploy.Annotations = newDeploy.Annotations
 		for k, v := range newDeploy.Annotations {
 			if !strings.Contains(k, deploymentAnnoPrefix) {
 				deploy.Annotations[k] = v

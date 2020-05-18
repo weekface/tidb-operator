@@ -406,14 +406,17 @@ type TiCDCSpec struct {
 	Timezone *string `json:"timezone,omitempty"`
 
 	// CDC GC safepoint TTL duration, specified in seconds
+	// Optional: Defaults to 86400
 	// +optional
 	GCTTL *int32 `json:"gcTTL,omitempty"`
 
 	// LogLevel is the log level
+	// Optional: Defaults to info
 	// +optional
 	LogLevel *string `json:"logLevel,omitempty"`
 
 	// LogFile is the log file
+	// Optional: Defaults to /dev/stderr
 	// +optional
 	LogFile *string `json:"logFile,omitempty"`
 }

@@ -69,11 +69,11 @@ func (tcmm *ticdcMemberManager) Sync(tc *v1alpha1.TidbCluster) error {
 		return nil
 	}
 	if tc.Spec.Paused {
-		klog.Infof("cluster %s/%s is paused, skip syncing for ticdc deployment", ns, tcName)
+		klog.Infof("TidbCluster %s/%s is paused, skip syncing ticdc deployment", ns, tcName)
 		return nil
 	}
 	if !tc.PDIsAvailable() {
-		return controller.RequeueErrorf("TidbCluster: [%s/%s], waiting for PD cluster running", ns, tcName)
+		return controller.RequeueErrorf("TidbCluster: %s/%s, waiting for PD cluster running", ns, tcName)
 	}
 
 	return tcmm.syncDeployment(tc)
@@ -82,11 +82,6 @@ func (tcmm *ticdcMemberManager) Sync(tc *v1alpha1.TidbCluster) error {
 func (tcmm *ticdcMemberManager) syncDeployment(tc *v1alpha1.TidbCluster) error {
 	ns := tc.GetNamespace()
 	tcName := tc.GetName()
-
-	if tc.Spec.Paused {
-		klog.V(4).Infof("tidb cluster %s/%s is paused, skip syncing ticdc", ns, tcName)
-		return nil
-	}
 
 	oldDeployTmp, err := tcmm.deployLister.Deployments(ns).Get(controller.TiCDCMemberName(tcName))
 	if err != nil && !errors.IsNotFound(err) {
@@ -211,7 +206,6 @@ func getNewDeployment(tc *v1alpha1.TidbCluster) (*apps.Deployment, error) {
 	ticdcLabel := labelTiCDC(tc)
 	deployName := controller.TiCDCMemberName(tcName)
 	podAnnotations := CombineAnnotations(controller.AnnProm(8301), baseTiCDCSpec.Annotations())
-	deployAnnotations := getStsAnnotations(tc, label.TiCDCLabelVal)
 
 	cmdArgs := []string{"/cdc server", "--addr=0.0.0.0:8301", "--advertise-addr=${POD_NAME}:8301"}
 	cmdArgs = append(cmdArgs, fmt.Sprintf("--pd=http://%s-pd:2379", tcName))
@@ -256,7 +250,6 @@ func getNewDeployment(tc *v1alpha1.TidbCluster) (*apps.Deployment, error) {
 			Name:            deployName,
 			Namespace:       ns,
 			Labels:          ticdcLabel.Labels(),
-			Annotations:     deployAnnotations,
 			OwnerReferences: []metav1.OwnerReference{controller.GetOwnerRef(tc)},
 		},
 		Spec: apps.DeploymentSpec{

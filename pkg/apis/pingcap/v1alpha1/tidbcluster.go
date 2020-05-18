@@ -351,6 +351,10 @@ func (tc *TidbCluster) TiFlashStsDesiredReplicas() int32 {
 }
 
 func (tc *TidbCluster) TiCDCDeployDesiredReplicas() int32 {
+	if tc.Spec.TiCDC == nil {
+		return 0
+	}
+
 	return tc.Spec.TiCDC.Replicas
 }
 
@@ -543,7 +547,7 @@ func (tc *TidbCluster) SkipTLSWhenConnectTiDB() bool {
 }
 
 func (tc *TidbCluster) TiCDCTimezone() string {
-	if tc.Spec.TiCDC.Timezone != nil {
+	if tc.Spec.TiCDC != nil && tc.Spec.TiCDC.Timezone != nil {
 		return *tc.Spec.TiCDC.Timezone
 	}
 
@@ -551,7 +555,7 @@ func (tc *TidbCluster) TiCDCTimezone() string {
 }
 
 func (tc *TidbCluster) TiCDCGCTTL() int32 {
-	if tc.Spec.TiCDC.GCTTL != nil {
+	if tc.Spec.TiCDC != nil && tc.Spec.TiCDC.GCTTL != nil {
 		return *tc.Spec.TiCDC.GCTTL
 	}
 
@@ -559,7 +563,7 @@ func (tc *TidbCluster) TiCDCGCTTL() int32 {
 }
 
 func (tc *TidbCluster) TiCDCLogFile() string {
-	if tc.Spec.TiCDC.LogFile != nil {
+	if tc.Spec.TiCDC != nil && tc.Spec.TiCDC.LogFile != nil {
 		return *tc.Spec.TiCDC.LogFile
 	}
 
@@ -567,7 +571,7 @@ func (tc *TidbCluster) TiCDCLogFile() string {
 }
 
 func (tc *TidbCluster) TiCDCLogLevel() string {
-	if tc.Spec.TiCDC.LogLevel != nil {
+	if tc.Spec.TiCDC != nil && tc.Spec.TiCDC.LogLevel != nil {
 		return *tc.Spec.TiCDC.LogLevel
 	}
 
