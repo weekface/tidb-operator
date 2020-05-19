@@ -22,6 +22,7 @@ import (
 	"github.com/pingcap/tidb-operator/pkg/label"
 	"github.com/pingcap/tidb-operator/pkg/manager"
 	"github.com/pingcap/tidb-operator/pkg/pdapi"
+	"github.com/pingcap/tidb-operator/pkg/util"
 	apps "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -217,7 +218,7 @@ func getNewTiCDCStatefulSet(tc *v1alpha1.TidbCluster) (*apps.StatefulSet, error)
 	cmdArgs = append(cmdArgs, fmt.Sprintf("--log-level=%s", tc.TiCDCLogLevel()))
 	cmd := strings.Join(cmdArgs, " ")
 
-	env := []corev1.EnvVar{
+	envs := []corev1.EnvVar{
 		{
 			Name: "POD_NAME",
 			ValueFrom: &corev1.EnvVarSource{
@@ -253,7 +254,7 @@ func getNewTiCDCStatefulSet(tc *v1alpha1.TidbCluster) (*apps.StatefulSet, error)
 			},
 		},
 		Resources: controller.ContainerResource(tc.Spec.TiCDC.ResourceRequirements),
-		Env:       env,
+		Env:       util.AppendEnv(envs, baseTiCDCSpec.Env()),
 	}
 	podSpec := baseTiCDCSpec.BuildPodSpec()
 	podSpec.Containers = []corev1.Container{ticdcContainer}
