@@ -551,7 +551,7 @@ func (tc *TidbCluster) TiCDCTimezone() string {
 		return *tc.Spec.TiCDC.Config.Timezone
 	}
 
-	return "UTC"
+	return tc.Timezone()
 }
 
 func (tc *TidbCluster) TiCDCGCTTL() int32 {
