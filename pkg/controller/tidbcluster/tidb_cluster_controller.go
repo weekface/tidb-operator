@@ -71,6 +71,7 @@ func NewController(
 	genericCli client.Client,
 	informerFactory informers.SharedInformerFactory,
 	kubeInformerFactory kubeinformers.SharedInformerFactory,
+	kubePodsInformerFactory kubeinformers.SharedInformerFactory,
 	autoFailover bool,
 	pdFailoverPeriod time.Duration,
 	tikvFailoverPeriod time.Duration,
@@ -89,7 +90,7 @@ func NewController(
 	epsInformer := kubeInformerFactory.Core().V1().Endpoints()
 	pvcInformer := kubeInformerFactory.Core().V1().PersistentVolumeClaims()
 	pvInformer := kubeInformerFactory.Core().V1().PersistentVolumes()
-	podInformer := kubeInformerFactory.Core().V1().Pods()
+	podInformer := kubePodsInformerFactory.Core().V1().Pods()
 	nodeInformer := kubeInformerFactory.Core().V1().Nodes()
 	secretInformer := kubeInformerFactory.Core().V1().Secrets()
 	scalerInformer := informerFactory.Pingcap().V1alpha1().TidbClusterAutoScalers()

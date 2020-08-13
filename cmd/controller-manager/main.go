@@ -37,6 +37,7 @@ import (
 	"github.com/pingcap/tidb-operator/pkg/controller/tidbmonitor"
 	"github.com/pingcap/tidb-operator/pkg/controller/tikvgroup"
 	"github.com/pingcap/tidb-operator/pkg/features"
+	"github.com/pingcap/tidb-operator/pkg/label"
 	"github.com/pingcap/tidb-operator/pkg/scheme"
 	"github.com/pingcap/tidb-operator/pkg/upgrader"
 	"github.com/pingcap/tidb-operator/pkg/version"
@@ -152,14 +153,20 @@ func main() {
 
 	var informerFactory informers.SharedInformerFactory
 	var kubeInformerFactory kubeinformers.SharedInformerFactory
+	var kubePodsInformerFactory kubeinformers.SharedInformerFactory
 	var options []informers.SharedInformerOption
 	var kubeoptions []kubeinformers.SharedInformerOption
+	var kubePodsOptions []kubeinformers.SharedInformerOption
 	if !controller.ClusterScoped {
 		options = append(options, informers.WithNamespace(ns))
 		kubeoptions = append(kubeoptions, kubeinformers.WithNamespace(ns))
 	}
+	kubePodsOptions = append(kubeoptions, kubeinformers.WithTweakListOptions(func(options *metav1.ListOptions) {
+		options.LabelSelector = label.NewOperatorManaged().String()
+	}))
 	informerFactory = informers.NewSharedInformerFactoryWithOptions(cli, controller.ResyncDuration, options...)
 	kubeInformerFactory = kubeinformers.NewSharedInformerFactoryWithOptions(kubeCli, controller.ResyncDuration, kubeoptions...)
+	kubePodsInformerFactory = kubeinformers.NewSharedInformerFactoryWithOptions(kubeCli, controller.ResyncDuration, kubePodsOptions...)
 
 	rl := resourcelock.EndpointsLock{
 		EndpointsMeta: metav1.ObjectMeta{
@@ -183,14 +190,14 @@ func main() {
 			klog.Fatalf("failed to upgrade: %v", err)
 		}
 
-		tcController := tidbcluster.NewController(kubeCli, cli, genericCli, informerFactory, kubeInformerFactory, autoFailover, pdFailoverPeriod, tikvFailoverPeriod, tidbFailoverPeriod, tiflashFailoverPeriod)
+		tcController := tidbcluster.NewController(kubeCli, cli, genericCli, informerFactory, kubeInformerFactory, kubePodsInformerFactory, autoFailover, pdFailoverPeriod, tikvFailoverPeriod, tidbFailoverPeriod, tiflashFailoverPeriod)
 		backupController := backup.NewController(kubeCli, cli, informerFactory, kubeInformerFactory)
 		restoreController := restore.NewController(kubeCli, cli, informerFactory, kubeInformerFactory)
 		bsController := backupschedule.NewController(kubeCli, cli, informerFactory, kubeInformerFactory)
 		tidbInitController := tidbinitializer.NewController(kubeCli, cli, genericCli, informerFactory, kubeInformerFactory)
 		tidbMonitorController := tidbmonitor.NewController(kubeCli, genericCli, cli, informerFactory, kubeInformerFactory)
 		tidbGroupController := tidbgroup.NewController(kubeCli, cli, informerFactory, kubeInformerFactory)
-		tikvGroupController := tikvgroup.NewController(kubeCli, cli, genericCli, informerFactory, kubeInformerFactory)
+		tikvGroupController := tikvgroup.NewController(kubeCli, cli, genericCli, informerFactory, kubeInformerFactory, kubePodsInformerFactory)
 
 		var periodicityController *periodicity.Controller
 		if controller.PodWebhookEnabled {

@@ -51,6 +51,7 @@ func NewController(
 	cli versioned.Interface,
 	genericCli client.Client,
 	informerFactory informers.SharedInformerFactory,
+	kubePodsInformerFactory kubeinformers.SharedInformerFactory,
 	kubeInformerFactory kubeinformers.SharedInformerFactory) *Controller {
 	eventBroadcaster := record.NewBroadcaster()
 	eventBroadcaster.StartLogging(klog.V(2).Infof)
@@ -63,7 +64,7 @@ func NewController(
 	setInformer := kubeInformerFactory.Apps().V1().StatefulSets()
 	svcInformer := kubeInformerFactory.Core().V1().Services()
 	tcInformer := informerFactory.Pingcap().V1alpha1().TidbClusters()
-	podInformer := kubeInformerFactory.Core().V1().Pods()
+	podInformer := kubePodsInformerFactory.Core().V1().Pods()
 	pvcInformer := kubeInformerFactory.Core().V1().PersistentVolumeClaims()
 	pvInformer := kubeInformerFactory.Core().V1().PersistentVolumes()
 
